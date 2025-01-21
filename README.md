@@ -1,0 +1,2 @@
+# PyCraft
+Minecraft, in Python.
