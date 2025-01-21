@@ -1,1 +1,1 @@
-(https://github.com/mabindy/PyCraft/blob/main/pycraft%20example.png)
+(https://raw.githubusercontent.com/mabindy/PyCraft/refs/heads/main/pycraft%20example.png)
