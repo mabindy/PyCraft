@@ -21,11 +21,16 @@ script_dir = Path(__file__).parent
 print(f'The relative path is {script_dir}')
 current_datetime = datetime.now()
 app = Ursina(borderless=False, title='PyCraft', icon='PyCraft/pycraftlogo.ico')
-game_version = '3.1'
+Entity.default_shader = lit_with_shadows_shader
+sun = DirectionalLight(parent=scene, y=10, z=10, shadows=True)
+sun.look_at(Vec3(0,0,0))
+
+game_version = '3.2'
 world_data = []
 hearts = []
 hungers = []
 debugOpen = False
+cinematicMode = False
 window.fullscreen = False
 seedvalue = None
 fov_slider = None
@@ -157,6 +162,27 @@ class OakPlanksVoxel(Button):
         b = min(base_color.b + 0.1, 1.0)
         self.highlight_color = color.rgb(r, g, b)
 block_class_mapping['OakPlanksVoxel'] = OakPlanksVoxel
+class OakSlabVoxel(Button):
+    block_texture='PyCraft/Textures/oak_planks.png'
+    block_icon = 'PyCraft/Textures/oakplanksblock.png'
+    block_color = color.hsv(0, 0, .9)
+    block_model = 'cube'
+    def __init__(self, position=(0,0,0)):
+        base_color = color.hsv(0, 0, .9)
+        super().__init__(parent=scene,
+            position=position,
+            model='cube',
+            origin_y=.5,
+            texture='PyCraft/Textures/oak_planks.png',
+            color=base_color,
+            scale = (1,0.5,1),
+            isblock = True
+        )
+        r = min(base_color.r + 0.1, 1.0)
+        g = min(base_color.g + 0.1, 1.0)
+        b = min(base_color.b + 0.1, 1.0)
+        self.highlight_color = color.rgb(r, g, b)
+block_class_mapping['OakSlabVoxel'] = OakSlabVoxel
 class OakLogVoxel(Button):
     block_texture='PyCraft/Textures/oaklogatlas.png'
     block_icon = 'PyCraft/Textures/oaklogblock.png'
@@ -839,6 +865,7 @@ inventory_blocks_pg4 = [
     {'voxel_class': GravelVoxel, 'texture': GravelVoxel.block_icon, 'color': color.hsv(0,0,0.9), 'name': 'Gravel'},
     {'voxel_class': SlimeVoxel, 'texture': SlimeVoxel.block_icon, 'color': color.hsv(0,0,0.9), 'name': 'Slime'},
     {'voxel_class': DiamondBlock, 'texture': DiamondBlock.block_icon, 'color': color.hsv(0,0,0.9), 'name': 'DiamondBlock'},
+    {'voxel_class': OakSlabVoxel, 'texture': OakSlabVoxel.block_icon, 'color': color.hsv(0,0,0.9), 'name': 'Oak Slab'},
 ]
 
 pages = {
@@ -964,7 +991,7 @@ mod_states = load_mod_states(mods_folder)
 
 
 
-def generate_world(worldseed):
+def generate_world(worldseed, worldsize, worlddepth):
     global worlddimensions, min_y, seedvalue, worldver, inventory_blocks_pg1, inventory_blocks_pg2
     load_mods(mod_states, mods_folder, game_api)
     clear_world()
@@ -976,8 +1003,8 @@ def generate_world(worldseed):
         worldseed = random.randint(1,1000000)
     noise = PerlinNoise (octaves=3, seed=worldseed)
     seedvalue = worldseed
-    min_y = -5
-    worlddimensions = 8 #World dimensions are twice this number 
+    min_y = -worlddepth
+    worlddimensions = worldsize #World dimensions are twice this number 
     for z in range(-worlddimensions,worlddimensions):
         for x in range(-worlddimensions,worlddimensions):
             surface_y = noise([x * .02,z * .02])
@@ -1123,14 +1150,7 @@ def build_barriers(dimensions, miny):
     )
 
 
-hotbar = Entity(
-    parent=camera.ui,
-    model='quad',
-    texture = 'PyCraft/Textures/hotbar.png',
-    scale=(0.5, 0.055),
-    position=(0,-0.45,1),
-    visible=True  
-    )
+
 
 def build_hotbar():
     global hotbar, selector, slot1, slot2, slot3, slot4, slot5, slot6, slot7, slot8, slot9, slotselected, hearts, slots
@@ -1411,14 +1431,13 @@ def open_settings():
     global settings_label, back_button, fullscreen_button, settings_opened, fov_slider, gamemode_button, creative
     settings_opened = True
     destroy_pause_menu()
-    settings_label = Text(
-        parent=pause_menu,
-        font="PyCraft/Textures/Fonts/mc.ttf",  
-        text='Settings',   
-        origin=(0, 0),      
-        scale=2,            
-        color=color.white,   
-        position=(0, 0.1),            
+    settings_label = Entity(
+    parent=pause_menu,
+    model='quad',
+    texture = 'PyCraft/Textures/settingslabel.png',
+    scale=(0.35, 0.15),
+    position=(0, 0.15, -1),
+    visible=True  
     )   
     fullscreen_button = Button(
         parent=pause_menu,
@@ -1626,14 +1645,13 @@ def build_pause_menu():
         position=(0, -0.05, -1),  
         on_click = lambda: open_settings()
     )
-    pause_label = Text(
+    pause_label = Entity(
     parent=pause_menu,
-    font="PyCraft/Textures/Fonts/mc.ttf",
-    text='Paused',   
-    origin=(0, 0),      
-    scale=2,            
-    color=color.white,   
-    position=(0, 0.1, -1),            
+    model='quad',
+    texture = 'PyCraft/Textures/pausedlabel.png',
+    scale=(0.35, 0.15),
+    position=(0, 0.15, -1),
+    visible=True  
     )   
 
 def leavetomenu():
@@ -1641,23 +1659,30 @@ def leavetomenu():
     build_main_menu()
 
 multiplayer_menu_open = False
-
+menu_settings_open = False
 def build_main_menu():
-    global mainbackground,title_screen_open,titletext,tiptext,singleplayer_button,multiplayer_button,menu_quit_button,main_menu_open, mod_menu_button, multiplayer_menu_open
+    global mainbackground,title_screen_open,titletext,tiptext,singleplayer_button,multiplayer_button,menu_quit_button,main_menu_open, mod_menu_button, multiplayer_menu_open, menu_settings_button, menu_settings_open, version_text
     if play_menu_open:
         destroy_play_menu()
     if multiplayer_menu_open:
         multiplayer_menu_open = False
         destroy(comingsoon)
         destroy(returntomenu_button)
-    quips = ["Minecraft, but worse!", "Created by Matthew!", "Minecraft.. in Python!?"]
+        destroy(mainbackground)
+    if menu_settings_open:
+        menu_settings_open = False
+        destroy(settings_text)
+        destroy(returntomenu_button)
+        destroy(mainbackground)
+        destroy(fullscreen_button)
+    quips = ["Minecraft, but worse!", "Created by Mabindy!", "Minecraft.. in Python!?", f"Version {game_version}", "Minecraft, but really small!", "Added Herobrine", "Removed Herobrine", "You couldn't afford real Minecraft?", "Minecraft, with a gun.. for some reason", "O_O"]
     main_menu_open = True
     title_screen_open = True
     mainbackground = Entity(
     parent=camera.ui,
     model='quad',
-    texture = 'PyCraft/Textures/menubackground.jpg',
-    scale=(2, 2, -1),  
+    texture = 'PyCraft/Textures/wallpaper.png',
+    scale=(1.8, 1, -1),  
     visible=True  
     )
     titletext = Entity(
@@ -1677,6 +1702,15 @@ def build_main_menu():
     rotation_z = -20,            
     color=color.yellow,   
     position=(0.25, 0.2),            
+    )
+    version_text = Text(
+    parent=camera.ui,
+    font="PyCraft/Textures/Fonts/mc.ttf",
+    text=f'Version {game_version}',   
+    origin=(0, 0),      
+    scale=1,            
+    color=color.white,   
+    position=(-0.8, -0.48),            
     )
     singleplayer_button = Button(
         parent=camera.ui,
@@ -1700,15 +1734,26 @@ def build_main_menu():
         position=(0, -0.1),  
         on_click = lambda: open_multiplayer_menu()
     )
-    mod_menu_button = Button(
+    menu_settings_button = Button(
         parent=camera.ui,
         font="PyCraft/Textures/Fonts/mc.ttf",
-        text='Mods',
+        text='Settings',
         color=color.light_gray,
         scale=(0.5, 0.05),
         texture="PyCraft/Textures/buttontexture.png",
         highlight_color=color.rgb(0.745, 0.729, 1),
         position=(0, -0.2),  
+        on_click = lambda: open_menu_settings()
+    )
+    mod_menu_button = Button(
+        parent=camera.ui,
+        font="PyCraft/Textures/Fonts/mc.ttf",
+        text='Mods',
+        color=color.light_gray,
+        scale=(0.225, 0.05),
+        texture="PyCraft/Textures/buttontexture.png",
+        highlight_color=color.rgb(0.745, 0.729, 1),
+        position=(-0.1375, -0.3),  
         on_click = lambda: open_mod_menu()
     )
     menu_quit_button = Button(
@@ -1716,10 +1761,10 @@ def build_main_menu():
         font="PyCraft/Textures/Fonts/mc.ttf",
         text='Quit',
         color=color.light_gray,
-        scale=(0.5, 0.05),
+        scale=(0.225, 0.05),
         texture="PyCraft/Textures/buttontexture.png",
         highlight_color=color.rgb(0.745, 0.729, 1),
-        position=(0, -0.3),  
+        position=(0.1375, -0.3),  
         on_click = application.quit
     )
 
@@ -1731,7 +1776,44 @@ def destroy_main_menu():
     destroy(menu_quit_button)
     destroy(mod_menu_button)
     destroy(tiptext)
+    destroy(menu_settings_button)
+    destroy(version_text)
     title_screen_open = False
+
+def open_menu_settings():
+    global menu_settings_open, comingsoon, returntomenu_button, settings_text, fullscreen_button
+    destroy_main_menu()
+    menu_settings_open = True
+    settings_text = Entity(
+    parent=camera.ui,
+    model='quad',
+    texture = 'PyCraft/Textures/settingslabel.png',
+    scale=(0.75, 0.3),
+    position=(0,0.25),
+    visible=True  
+    )
+    fullscreen_button = Button(
+        parent=camera.ui,
+        font="PyCraft/Textures/Fonts/mc.ttf",
+        text='Fullscreen: Disabled' if not window.fullscreen else 'Fullscreen: Enabled',
+        color=color.light_gray,
+        texture="PyCraft/Textures/buttontexture.png",
+        highlight_color=color.rgb(0.745, 0.729, 1),
+        scale=(0.5, 0.05),
+        position=(0, 0), 
+        on_click = lambda: toggle_fullscreen()
+    )
+    returntomenu_button = Button(
+        parent=camera.ui,
+        font="PyCraft/Textures/Fonts/mc.ttf",
+        text='Back',
+        color=color.light_gray,
+        texture="PyCraft/Textures/buttontexture.png",
+        highlight_color=color.rgb(0.745, 0.729, 1),
+        scale=(0.5, 0.05),
+        position=(0, -0.15, -1),  
+        on_click = lambda: build_main_menu()
+    )
 
 def open_mod_menu():
     global mod_buttons, back_to_main_menu_button, mod_states, mod_labels
@@ -1820,15 +1902,16 @@ def open_multiplayer_menu():
 
 creative = False
 def open_play_menu():
-    global file_buttons, createworld_button, worldseedinput, play_menu_open, returntomenu_button, creative, mode_select_button
+    global file_buttons, createworld_button, worldseedinput, play_menu_open, returntomenu_button, creative, mode_select_button, world_size, world_dimensions_button, world_depth_button, world_depth
     destroy_main_menu()
     play_menu_open = True
     folder_path = f'{script_dir}\\PyCraft\\Worlds'
     files = os.listdir(folder_path)
     scroll_container = Entity(parent=camera.ui, position = (0,0.3), scale=(1,1), visible=True)
     scroll_offset = 0
-
     file_buttons = []
+    world_size = 10
+    world_depth = 4
     for i, file_name in enumerate(files):
         filepath = f'{script_dir}/PyCraft/Worlds/{file_name}'
         worldfilebutton = Button(
@@ -1880,7 +1963,7 @@ def open_play_menu():
         highlight_color=color.rgb(0.745, 0.729, 1),
         scale=(0.25, 0.04),
         position=(0, -0.15, -1),  
-        on_click = lambda: generate_world(worldseedinput.text)
+        on_click = lambda: generate_world(worldseedinput.text, int(world_size/2), world_depth)
     )
     mode_select_button = Button(
         parent=camera.ui,
@@ -1892,6 +1975,28 @@ def open_play_menu():
         scale=(0.2, 0.04),
         position=(0.275, -0.15, -1),  
         on_click = lambda: toggle_mode()
+    )
+    world_dimensions_button = Button(
+        parent=camera.ui,
+        font="PyCraft/Textures/Fonts/mc.ttf",
+        text='World Size: 10x10',
+        color=color.light_gray,
+        texture="PyCraft/Textures/buttontexture.png",
+        highlight_color=color.rgb(0.745, 0.729, 1),
+        scale=(0.23, 0.04),
+        position=(0.275, -0.2, -1),  
+        on_click = lambda: toggle_world_size()
+    )
+    world_depth_button = Button(
+        parent=camera.ui,
+        font="PyCraft/Textures/Fonts/mc.ttf",
+        text='World Depth: 4',
+        color=color.light_gray,
+        texture="PyCraft/Textures/buttontexture.png",
+        highlight_color=color.rgb(0.745, 0.729, 1),
+        scale=(0.23, 0.04),
+        position=(0.275, -0.25, -1),  
+        on_click = lambda: toggle_world_depth()
     )
     worldseedinput = InputField(
         default_value='Seed',
@@ -1919,6 +2024,37 @@ def toggle_mode():
     creative = not creative
     mode_select_button.text = 'Mode: Creative' if creative else 'Mode: Survival'
 
+def toggle_world_size():
+    global world_dimensions_button, world_size
+    if world_dimensions_button.text == 'World Size: 10x10':
+        world_size = 12
+        world_dimensions_button.text = 'World Size: 12x12'
+    elif world_dimensions_button.text == 'World Size: 12x12':
+        world_size = 16
+        world_dimensions_button.text = 'World Size: 16x16'
+    elif world_dimensions_button.text == 'World Size: 16x16':
+        world_size = 20
+        world_dimensions_button.text = 'World Size: 20x20'
+    elif world_dimensions_button.text == 'World Size: 20x20':
+        world_size = 8
+        world_dimensions_button.text = 'World Size: 8x8'
+    else:
+        world_size = 10
+        world_dimensions_button.text = 'World Size: 10x10'
+def toggle_world_depth():
+    global world_depth_button, world_depth
+    if world_depth_button.text == 'World Depth: 4':
+        world_depth = 6
+        world_depth_button.text = 'World Depth: 6'
+    elif world_depth_button.text == 'World Depth: 6':
+        world_depth = 8
+        world_depth_button.text = 'World Depth: 8'
+    elif world_depth_button.text == 'World Depth: 8':
+        world_depth = 10
+        world_depth_button.text = 'World Depth: 10'
+    elif world_depth_button.text == 'World Depth: 10':
+        world_depth = 4
+        world_depth_button.text = 'World Depth: 4'
 def destroy_play_menu():
     global file_buttons, main_menu_open
     destroy(mainbackground)
@@ -1926,6 +2062,8 @@ def destroy_play_menu():
     destroy(worldseedinput)
     destroy(returntomenu_button)
     destroy(mode_select_button)
+    destroy(world_depth_button)
+    destroy(world_dimensions_button)
     for i in file_buttons:
         destroy(i)
     file_buttons = []
@@ -2520,6 +2658,25 @@ def input(key):
                 position=(-0.5, 0.39),            
                 )
                 debugOpen = True
+        if key == 'f1':
+            global cinematicMode
+            if not cinematicMode:
+                cinematicMode = True
+                hotbar.visible = False
+                selector.visible = False
+                for i in slots:
+                    i.visible = False
+                player.cursor.visible = False
+                hand.visible = False
+            else:
+                cinematicMode = False
+                hotbar.visible = True
+                selector.visible = True
+                for i in slots:
+                    i.visible = True
+                player.cursor.visible = True
+                hand.visible = True
+                
         if key == '1':
             if slot1.equipped and slot1.equipped != 'gun':
                 selectedvoxel = slot1.equipped
@@ -2925,9 +3082,8 @@ class CustomFirstPersonController(Entity):
         self._original_camera_transform = camera.transform  # store original position and rotation
         camera.world_parent = scene
 
-transition_speed = 1/15  # Adjust the speed of the color change. original time is 1/1200
+transition_speed = 1/1200  # Adjust the speed of the color change. original time is 1/1200
 light_to_dark = True  # Flag to determine the direction of transition
-
 last_y_position = None
 fall_start_y = None
 is_falling = False
