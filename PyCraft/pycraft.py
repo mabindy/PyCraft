@@ -25,7 +25,7 @@ Entity.default_shader = lit_with_shadows_shader
 sun = DirectionalLight(parent=scene, y=10, z=10, shadows=True)
 sun.look_at(Vec3(0,0,0))
 
-game_version = '3.2'
+game_version = '3.3'
 world_data = []
 hearts = []
 hungers = []
@@ -619,21 +619,31 @@ class DroppedBlock(Entity):
         self.animating = True
         target_position = player.position - Vec3(0, 0.5, 0)
         for i in slots:
-            if not i.equipped:
+            if not i.equipped or i.equipped == block_class_mapping[self.block_class.__name__]:
                 self.pickingup = True
                 self.position = lerp(self.position, target_position, 0.1)
                 break
             self.pickingup = False
         if distance(self.position, player.position) < 1:
+            self.searching = True
             for i in slots:
-                if not i.equipped:
-                    i.hand_color = block_class_mapping[self.block_class.__name__].block_color
-                    i.texture = block_class_mapping[self.block_class.__name__].block_icon
-                    i.equipped = block_class_mapping[self.block_class.__name__]
-                    i.visible = True
-                    update_equipped_slot(slotselected)
+                if i.equipped == block_class_mapping[self.block_class.__name__] and i.amount < 64:
+                    i.amount += 1
                     destroy(self)
+                    self.searching = False
                     break
+            if self.searching:
+                for i in slots:
+                    if not i.equipped:
+                        i.hand_color = block_class_mapping[self.block_class.__name__].block_color
+                        i.texture = block_class_mapping[self.block_class.__name__].block_icon
+                        i.equipped = block_class_mapping[self.block_class.__name__]
+                        i.amount += 1
+                        i.visible = True
+                        self.searching = False
+                        update_equipped_slot(slotselected)
+                        destroy(self)
+                        break
         self.animating = False
 
 class WoodPickaxe(Entity):
@@ -791,12 +801,12 @@ inventory_crafting_grid = [None, None, None, None]
 current_crafting_result = None
 
 block_break_times = {
-    'Voxel': 0.7,
+    'Voxel': 4.0,
     'GroundVoxel': 0.8,
     'BrownVoxel': 0.5,
     'OakPlanksVoxel': 0.9,
-    'IronOreVoxel': 2.0,
-    'CoalOreVoxel': 1.2,
+    'IronOreVoxel': 7.5,
+    'CoalOreVoxel': 5.0,
     'OakLogVoxel': 1.0,
     'TreeLeavesVoxel': 0.3,
     'GlassVoxel': 0.2,
@@ -807,11 +817,11 @@ block_break_times = {
 }
 
 mining_tools = {
-    WoodPickaxe: 0.85,
-    StonePickaxe: 0.7,
-    IronPickaxe: 0.55,
-    GoldPickaxe: 0.4,
-    DiamondPickaxe: 0.3,
+    WoodPickaxe: 0.375,
+    StonePickaxe: 0.1875,
+    IronPickaxe: 0.125,
+    GoldPickaxe: 0.0625,
+    DiamondPickaxe: 0.1,
     None: 1,
 }
 
@@ -1153,7 +1163,7 @@ def build_barriers(dimensions, miny):
 
 
 def build_hotbar():
-    global hotbar, selector, slot1, slot2, slot3, slot4, slot5, slot6, slot7, slot8, slot9, slotselected, hearts, slots
+    global hotbar, selector, slot1, slot2, slot3, slot4, slot5, slot6, slot7, slot8, slot9, slotselected, hearts, slots, slot1amount, slot2amount, slot3amount, slot4amount, slot5amount, slot6amount, slot7amount, slot8amount, slot9amount
     hotbar = Entity(
     parent=camera.ui,
     model='quad',
@@ -1162,7 +1172,6 @@ def build_hotbar():
     position=(0,-0.45,1),
     visible=True  
     )
-    
     selector = Button( 
                     color=color.rgb(0.2, 0.2, 0.2), 
                     position=(-0.225, -0.45, 0), 
@@ -1178,17 +1187,18 @@ def build_hotbar():
                     hand_color = color.hsv(0, 0, .9),
                     on_click = lambda: equip_block(slot1) if holding_block else swap_block(slot1),
                     equipped=Voxel if creative else False,
-                    amount = 1,
+                    amount = 0,
                     visible = True if creative else False
                     )
     slot1amount = Text(
-        parent=camera.ui, 
+        parent=camera.ui,
+        font="PyCraft/Textures/Fonts/mc.ttf", 
         text=str(slot1.amount),   
         origin=(0, 0),      
         scale=1,            
         color=color.white,   
-        position=(-0.21, -0.45, -2),
-        visible=False           
+        position=(-0.215, -0.463, -2),
+        visible=True           
     )   
     slot2 = Button( 
                     color=color.hsv(0, 0, .9),
@@ -1201,6 +1211,16 @@ def build_hotbar():
                     amount = 0,
                     visible = True if creative else False
                     )
+    slot2amount = Text(
+        parent=camera.ui,
+        font="PyCraft/Textures/Fonts/mc.ttf", 
+        text=str(slot2.amount),   
+        origin=(0, 0),      
+        scale=1,            
+        color=color.white,   
+        position=(-0.16, -0.463, -2),
+        visible=True           
+    )
     slot3 = Button( 
                     color=color.hsv(0, 0, 0.9),
                     position=(-0.114, -0.45, -1), 
@@ -1211,6 +1231,16 @@ def build_hotbar():
                     amount = 0,
                     equipped=False
                     )
+    slot3amount = Text(
+        parent=camera.ui,
+        font="PyCraft/Textures/Fonts/mc.ttf", 
+        text=str(slot3.amount),   
+        origin=(0, 0),      
+        scale=1,            
+        color=color.white,   
+        position=(-0.105, -0.463, -2),
+        visible=True           
+    )
     slot4 = Button( 
                     color=color.hsv(0, 0, 1),
                     position=(-0.057, -0.45, -1), 
@@ -1221,6 +1251,16 @@ def build_hotbar():
                     amount = 0,
                     visible = True if creative else False
                     )
+    slot4amount = Text(
+        parent=camera.ui,
+        font="PyCraft/Textures/Fonts/mc.ttf", 
+        text=str(slot4.amount),   
+        origin=(0, 0),      
+        scale=1,            
+        color=color.white,   
+        position=(-0.05, -0.463, -2),
+        visible=True           
+    )
     slot5 = Button( 
                     color=color.hsv(0, 0, .9),
                     texture='PyCraft/Textures/oakplanksblock.png',
@@ -1232,6 +1272,16 @@ def build_hotbar():
                     amount = 0,
                     visible = True if creative else False
                     )
+    slot5amount = Text(
+        parent=camera.ui,
+        font="PyCraft/Textures/Fonts/mc.ttf", 
+        text=str(slot5.amount),   
+        origin=(0, 0),      
+        scale=1,            
+        color=color.white,   
+        position=(0.0075, -0.463, -2),
+        visible=True           
+    )
     slot6 = Button( 
                     color=color.hsv(0, 0, .9),
                     texture='PyCraft/Textures/glassblock.png',
@@ -1243,30 +1293,79 @@ def build_hotbar():
                     amount = 0,
                     visible = True if creative else False
                     )
+    slot6amount = Text(
+        parent=camera.ui,
+        font="PyCraft/Textures/Fonts/mc.ttf", 
+        text=str(slot6.amount),   
+        origin=(0, 0),      
+        scale=1,            
+        color=color.white,   
+        position=(0.065, -0.463, -2),
+        visible=True           
+    )
     slot7 = Button( 
                     color=color.hsv(0, 0, .9),
                     texture='PyCraft/Textures/dirtblock.png',
                     position=(0.110, -0.45, -1), 
                     scale=(0.045, 0.045),
+                    hand_color = color.hsv(0,0,.9),
+                    on_click = lambda: equip_block(slot7) if holding_block else swap_block(slot7),
                     equipped=None,
+                    amount = 0,
                     visible=False
                     )
+    slot7amount = Text(
+        parent=camera.ui,
+        font="PyCraft/Textures/Fonts/mc.ttf", 
+        text=str(slot7.amount),   
+        origin=(0, 0),      
+        scale=1,            
+        color=color.white,   
+        position=(0.12, -0.463, -2),
+        visible=True           
+    )
     slot8 = Button( 
                     color=color.hsv(0, 0, .9),
                     texture='PyCraft/Textures/dirtblock.png',
                     position=(0.165, -0.45, -1), 
                     scale=(0.045, 0.045), 
+                    hand_color = color.hsv(0,0,.9),
+                    on_click = lambda: equip_block(slot8) if holding_block else swap_block(slot8),
                     equipped=None,
+                    amount = 0,
                     visible=False
                     )
+    slot8amount = Text(
+        parent=camera.ui,
+        font="PyCraft/Textures/Fonts/mc.ttf", 
+        text=str(slot8.amount),   
+        origin=(0, 0),      
+        scale=1,            
+        color=color.white,   
+        position=(0.175, -0.463, -2),
+        visible=True           
+    )
     slot9 = Button( 
                     color=color.hsv(0, 0, .9),
                     texture='PyCraft/Textures/dirtblock.png',
                     position=(0.22, -0.45, -1), 
-                    scale=(0.045, 0.045), 
+                    scale=(0.045, 0.045),
+                    hand_color = color.hsv(0,0,.9),
+                    on_click = lambda: equip_block(slot9) if holding_block else swap_block(slot9), 
                     equipped=None,
+                    amount = 0,
                     visible=False
                     )
+    slot9amount = Text(
+        parent=camera.ui,
+        font="PyCraft/Textures/Fonts/mc.ttf", 
+        text=str(slot9.amount),   
+        origin=(0, 0),      
+        scale=1,            
+        color=color.white,   
+        position=(0.23, -0.463, -2),
+        visible=True           
+    )
     slots = [slot1, slot2, slot3, slot4, slot5, slot6, slot7, slot8, slot9]
     spacing = -0.0235
     if not creative:
@@ -1327,7 +1426,8 @@ def save_world(filename=f'{script_dir}\\PyCraft\\Worlds\\world_save.json'):
         'world_version': game_version,
         'last_save_date': f'{current_datetime.date()}',
         'creative': creative,
-        'hotbar': [slot.equipped.__name__ if slot.equipped and isinstance(slot.equipped, type) else slot.equipped if slot.equipped else None for slot in slots]
+        'hotbar': [slot.equipped.__name__ if slot.equipped and isinstance(slot.equipped, type) else slot.equipped if slot.equipped else None for slot in slots],
+        'hotbaramounts': [slot.amount for slot in slots]
     }
     if world_mods != []:
         save_data['world_mods'] = world_mods
@@ -1336,7 +1436,7 @@ def save_world(filename=f'{script_dir}\\PyCraft\\Worlds\\world_save.json'):
     with open(filename, 'w') as f:
         json.dump(save_data, f)
 
-def load_world(filename):
+def load_world(filename, skipoutdated=False):
     global world_data, worlddimensions, worldver, seedvalue, saved_world_name, inventory_blocks_pg1, inventory_blocks_pg2, slots, last_y_position, creative
     saved_world_name = filename[43:]
     with open(filename, 'r') as f:
@@ -1347,6 +1447,9 @@ def load_world(filename):
     seedvalue = save_data.get('world_seed', 'Unknown')
     neededmods = save_data.get('world_mods', None)
     iscreative = save_data.get('creative', 'Unknown')
+    if worldver != game_version and not skipoutdated:
+        outdated_popup(filename)
+        return
     if iscreative and not iscreative == 'Unknown':
         creative = True
     elif iscreative == 'Unknown':
@@ -1386,9 +1489,19 @@ def load_world(filename):
         else:
             slot.equipped = None
             slot.visible = False
+    hotbar_amounts = save_data.get('hotbaramounts', [])
+    for slot, amount in zip(slots, hotbar_amounts):
+        if amount:
+            slot.amount = amount
+        else:
+            if slot.equipped:
+                slot.amount = 1
+            else:
+                slot.amount = 0
     last_y_position = None
     player.position = Vec3(*player_position)
     mouse.locked = True
+    update_equipped_slot(slotselected)
 
 def get_world_timesaved(filename):
     with open(filename, 'r') as f:
@@ -1917,7 +2030,7 @@ def open_play_menu():
         worldfilebutton = Button(
             parent=scroll_container,
             font="PyCraft/Textures/Fonts/mc.ttf",
-            text=file_name,
+            text=file_name[:-5],
             color=color.light_gray,
             texture="PyCraft/Textures/buttontexture.png",
             highlight_color=color.rgb(0.745, 0.729, 1),
@@ -2077,7 +2190,53 @@ def delete_world(filepath):
     destroy(createworld_button)
     destroy(worldseedinput)
     destroy(returntomenu_button)
+    destroy(mode_select_button)
+    destroy(world_dimensions_button)
+    destroy(world_depth_button)
+    
     open_play_menu()
+def outdated_popup(filename):
+    global file_buttons
+    for i in file_buttons:
+        destroy(i)
+    
+    destroy(createworld_button)
+    destroy(worldseedinput)
+    destroy(returntomenu_button)
+    destroy(mode_select_button)
+    destroy(world_dimensions_button)
+    destroy(world_depth_button)
+    version_text = Text(
+    parent=camera.ui,
+    font="PyCraft/Textures/Fonts/mc.ttf",
+    text=f'This world was created on an older version of PyCraft',   
+    origin=(0, 0),      
+    scale=1.3,            
+    color=color.white,   
+    position=(0, 0.1),            
+    )
+    goback_button = Button(
+        parent=camera.ui,
+        font="PyCraft/Textures/Fonts/mc.ttf",
+        text='Back',
+        color=color.light_gray,
+        scale=(0.225, 0.05),
+        texture="PyCraft/Textures/buttontexture.png",
+        highlight_color=color.rgb(0.745, 0.729, 1),
+        position=(-0.1375, 0),  
+        on_click = lambda: open_play_menu()
+    )
+    continue_button = Button(
+        parent=camera.ui,
+        font="PyCraft/Textures/Fonts/mc.ttf",
+        text='Continue',
+        color=color.light_gray,
+        scale=(0.225, 0.05),
+        texture="PyCraft/Textures/buttontexture.png",
+        highlight_color=color.rgb(0.745, 0.729, 1),
+        position=(0.1375, 0),  
+        on_click = load_world(filename)
+    )
 def toggle_inventory():
     global inventory_opened
     if creative:
@@ -2152,10 +2311,13 @@ def open_survival_inventory():
                     ) 
     
 def close_survival_inventory():
-    global inventory_opened
+    global inventory_opened, holding_block
     inventory_opened = False
     mouse.locked = True
     mouse.visible = False
+    if holding_block:
+        holding_block = False
+        destroy(block_drag)
     destroy(survival_inventory_panel)
 
 
@@ -2281,6 +2443,11 @@ def equip_block(slot):
         slot.equipped=block_held
         slot.hand_color=block_drag.blockcolor
         slot.visible = True
+        if slot.equipped == block_held:
+            if slot.amount < 64:
+                slot.amount += 1
+        else:
+            slot.amount = 1
         destroy(block_drag)
         holding_block = False
         if slot == slotselected:
@@ -2290,9 +2457,11 @@ def equip_block(slot):
         replacingslot.equipped = slot.equipped
         replacingslot.hand_color = slot.hand_color
         replacingslot.visible = slot.visible
+        replacingslot.amount = slot.amount
         slot.texture=block_drag.texture
         slot.equipped=block_held
         slot.hand_color=block_drag.blockcolor
+        slot.amount = block_drag.amount if hasattr(block_drag, 'amount') else 1
         slot.visible = True
         destroy(block_drag)
         if slot == slotselected or replacingslot == slotselected:
@@ -2302,22 +2471,24 @@ def equip_block(slot):
 
 def swap_block(slot):
     global selectedvoxel,selected,hand,defrot,holding_block,block_drag,block_held,slot1,slot2,slot3,slot4,slot5,slot6,slot7,slot8,slot9, replacingslot
-
-    block_drag = Entity(
-        parent=camera.ui,
-        model='quad',
-        texture=slot.texture,
-        blockcolor = slot.hand_color,
-        scale=(0.05,0.05),
-        color=color.white,
-    )
-    replacingslot = slot
-    slot.visible = False
-    block_held = slot.equipped
-    holding_block = True
-    slot.equipped = None
-    if slot == slotselected:
-        update_equipped_slot(slot)
+    if slot.equipped:
+        block_drag = Entity(
+            parent=camera.ui,
+            model='quad',
+            texture=slot.texture,
+            blockcolor = slot.hand_color,
+            scale=(0.05,0.05),
+            amount=slot.amount,
+            color=color.white,
+        )
+        slot.amount = 0
+        replacingslot = slot
+        slot.visible = False
+        block_held = slot.equipped
+        holding_block = True
+        slot.equipped = None
+        if slot == slotselected:
+            update_equipped_slot(slot)
 def close_inventory():
     global inventory_opened, inventory_panel, block_buttons, holding_block
     inventory_opened = False
@@ -2603,6 +2774,8 @@ def input(key):
                 if block_type == 'CopiedVoxel':
                     block_type = blockcopied
                 world_data.append({'position': [new_position.x, new_position.y, new_position.z], 'block_type': block_type})
+                if not creative:
+                    slotselected.amount -= 1
                 hand.rotation = defrot
 
                 hand.animate_rotation((110, -30, 0), duration=0.2, curve=curve.in_out_quad)
@@ -2930,9 +3103,8 @@ def input(key):
                 visible=True
                 )
         if key == 'q':
-            slotselected.equipped = None
-            slotselected.visible = False
-            update_equipped_slot(slotselected)
+            if slotselected.amount > 0:
+                slotselected.amount -= 1
 
 
 issprinting = False
@@ -3097,11 +3269,26 @@ def animatehand():
     invoke(hand.animate_rotation, defrot, duration=0.2, curve=curve.in_out_quad, delay=0.2)
 
 def update():
-    global fov_slider, issprinting, iscrouching, paused, last_y_position, fall_start_y, health, is_falling, light_to_dark, currently_breaking_block, block_break_start_time, mouse_held, overlay_entity, mining_animation_running, coordslabel, tiptext, title_screen_open
+    global fov_slider, issprinting, iscrouching, paused, last_y_position, fall_start_y, health, is_falling, light_to_dark, currently_breaking_block, block_break_start_time, mouse_held, overlay_entity, mining_animation_running, coordslabel, tiptext, title_screen_open, slot1amount
     if paused:
         player.enabled = False
         return
     current_y = player.position.y
+    if not main_menu_open:
+        slot1amount.text = slot1.amount
+        slot2amount.text = slot2.amount
+        slot3amount.text = slot3.amount
+        slot4amount.text = slot4.amount
+        slot5amount.text = slot5.amount
+        slot6amount.text = slot6.amount
+        slot7amount.text = slot7.amount
+        slot8amount.text = slot8.amount
+        slot9amount.text = slot9.amount
+        if slotselected.amount < 1:
+            slotselected.amount = 0
+            slotselected.visible = False
+            slotselected.equipped = None
+            update_equipped_slot(slotselected)
     if not creative:
         if last_y_position is not None:
             if current_y < last_y_position:
