@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 from datetime import datetime
 import time
-script_dir = Path(__file__).parent
+script_dir = Path(__file__).parent.parent
 print(f'The relative path is {script_dir}')
 current_datetime = datetime.now()
 app = Ursina(borderless=False, title='PyCraft', icon='PyCraft/pycraftlogo.ico')
@@ -207,8 +207,28 @@ class OakLogVoxel(Button):
         self.highlight_color = color.rgb(r, g, b)
 block_class_mapping['OakLogVoxel'] = OakLogVoxel
 class TreeLeavesVoxel(Button):
-    block_texture='PyCraft/Textures/treeleaves.png'
+    block_texture='PyCraft/Textures/treeleaves2.png'
     block_icon = 'PyCraft/Textures/leavesicon.png'
+    block_color = color.hsv(0, 0, .9)
+    block_model = 'cube'
+    def __init__(self, position=(0,0,0)):
+        base_color = color.hsv(0, 0, .9)
+        super().__init__(parent=scene,
+            position=position,
+            model='cube',
+            origin_y=.5,
+            texture='PyCraft/Textures/treeleaves2.png',
+            color=base_color,
+            isblock = True
+        )
+        r = min(base_color.r + 0.1, 1.0)
+        g = min(base_color.g + 0.1, 1.0)
+        b = min(base_color.b + 0.1, 1.0)
+        self.highlight_color = color.rgb(r, g, b)
+block_class_mapping['TreeLeavesVoxel'] = TreeLeavesVoxel
+class SakuraLeaves(Button):
+    block_texture='PyCraft/Textures/treeleaves.png'
+    block_icon = 'PyCraft/Textures/sakuraleavesicon.png'
     block_color = color.hsv(0, 0, .9)
     block_model = 'cube'
     def __init__(self, position=(0,0,0)):
@@ -225,7 +245,7 @@ class TreeLeavesVoxel(Button):
         g = min(base_color.g + 0.1, 1.0)
         b = min(base_color.b + 0.1, 1.0)
         self.highlight_color = color.rgb(r, g, b)
-block_class_mapping['TreeLeavesVoxel'] = TreeLeavesVoxel
+block_class_mapping['SakuraLeaves'] = SakuraLeaves
 class Fire(Button):
     block_texture='PyCraft/Textures/fireatlas.png'
     block_icon = 'PyCraft/Textures/grassblock.png'
@@ -352,6 +372,7 @@ class ObsidianVoxel(Button):
             origin_y=.5,
             texture='PyCraft/Textures/obsidian.png',
             color=base_color,
+            blockclass='obsidian',
             isblock = True
         )
         r = min(base_color.r + 0.1, 1.0)
@@ -698,7 +719,7 @@ class DiamondPickaxe(Entity):
     defaultrotation = (180,80,145)
     animationrotation = (180, 80, 205)
     yorg = 0.75
-    classaffect = ['stone', 'ore']
+    classaffect = ['stone', 'ore', 'obsidian']
     istool = True
 
 class Cookie(Entity):
@@ -813,7 +834,8 @@ block_break_times = {
     'WhiteWoolVoxel': 0.4,
     'BlackWoolVoxel': 0.4,
     'RedWoolVoxel': 0.4,
-    'Bedrock': float('inf')  # essentially unbreakable
+    'ObsidianVoxel': 50.0,
+    'Bedrock': float('inf')  # essentially unbreakable,
 }
 
 mining_tools = {
@@ -999,7 +1021,54 @@ mods_folder = f'{script_dir}\PyCraft\mods'
 
 mod_states = load_mod_states(mods_folder)
 
-
+def generate_tree(x, y, z):
+    tree_type = random.randint(1,2)
+    if tree_type == 1:
+        leaves = TreeLeavesVoxel
+        leavestype = 'TreeLeavesVoxel'
+    elif tree_type == 2:
+        leaves = SakuraLeaves
+        leavestype = 'SakuraLeaves'
+    voxel = OakLogVoxel(position=(x,y+1,z))
+    world_data.append({'position': [x, y+1, z], 'block_type': 'OakLogVoxel'})
+    voxel = OakLogVoxel(position=(x,y+2,z))
+    world_data.append({'position': [x, y+2, z], 'block_type': 'OakLogVoxel'})
+    voxel = OakLogVoxel(position=(x,y+3,z))
+    world_data.append({'position': [x, y+3, z], 'block_type': 'OakLogVoxel'})
+    voxel = leaves(position=(x,y+3,z+1))
+    world_data.append({'position': [x, y+3, z+1], 'block_type': leavestype})
+    voxel = leaves(position=(x+1,y+3,z+1))
+    world_data.append({'position': [x+1, y+3, z+1], 'block_type': leavestype})
+    voxel = leaves(position=(x-1,y+3,z+1))
+    world_data.append({'position': [x-1, y+3, z+1], 'block_type': leavestype})
+    voxel = leaves(position=(x,y+3,z-1))
+    world_data.append({'position': [x, y+3, z-1], 'block_type': leavestype})
+    voxel = leaves(position=(x+1,y+3,z-1))
+    world_data.append({'position': [x+1, y+3, z-1], 'block_type': leavestype})
+    voxel = leaves(position=(x-1,y+3,z-1))
+    world_data.append({'position': [x-1, y+3, z-1], 'block_type': leavestype})
+    voxel = leaves(position=(x+1,y+3,z))
+    world_data.append({'position': [x+1, y+3, z], 'block_type': leavestype})
+    voxel = leaves(position=(x-1,y+3,z))
+    world_data.append({'position': [x-1, y+3, z], 'block_type': leavestype})
+    voxel = leaves(position=(x,y+4,z+1))
+    world_data.append({'position': [x, y+4, z+1], 'block_type': leavestype})
+    voxel = leaves(position=(x+1,y+4,z+1))
+    world_data.append({'position': [x+1, y+4, z+1], 'block_type': leavestype})
+    voxel = leaves(position=(x-1,y+4,z+1))
+    world_data.append({'position': [x-1, y+4, z+1], 'block_type': leavestype})
+    voxel = leaves(position=(x,y+4,z-1))
+    world_data.append({'position': [x, y+4, z-1], 'block_type': leavestype})
+    voxel = leaves(position=(x+1,y+4,z-1))
+    world_data.append({'position': [x+1, y+4, z-1], 'block_type': leavestype})
+    voxel = leaves(position=(x-1,y+4,z-1))
+    world_data.append({'position': [x-1, y+4, z-1], 'block_type': leavestype})
+    voxel = leaves(position=(x+1,y+4,z))
+    world_data.append({'position': [x+1, y+4, z], 'block_type': leavestype})
+    voxel = leaves(position=(x-1,y+4,z))
+    world_data.append({'position': [x-1, y+4, z], 'block_type': leavestype})
+    voxel = leaves(position=(x,y+5,z))
+    world_data.append({'position': [x, y+5, z], 'block_type': leavestype})
 
 def generate_world(worldseed, worldsize, worlddepth):
     global worlddimensions, min_y, seedvalue, worldver, inventory_blocks_pg1, inventory_blocks_pg2
@@ -1026,46 +1095,7 @@ def generate_world(worldseed, worldsize, worlddepth):
                     block_type = (type(voxel).__name__)
                     treegenerator = random.randint(0,65)
                     if treegenerator == 5:
-                        voxel = OakLogVoxel(position=(x,y+1,z))
-                        world_data.append({'position': [x, y+1, z], 'block_type': 'OakLogVoxel'})
-                        voxel = OakLogVoxel(position=(x,y+2,z))
-                        world_data.append({'position': [x, y+2, z], 'block_type': 'OakLogVoxel'})
-                        voxel = OakLogVoxel(position=(x,y+3,z))
-                        world_data.append({'position': [x, y+3, z], 'block_type': 'OakLogVoxel'})
-                        voxel = TreeLeavesVoxel(position=(x,y+3,z+1))
-                        world_data.append({'position': [x, y+3, z+1], 'block_type': 'TreeLeavesVoxel'})
-                        voxel = TreeLeavesVoxel(position=(x+1,y+3,z+1))
-                        world_data.append({'position': [x+1, y+3, z+1], 'block_type': 'TreeLeavesVoxel'})
-                        voxel = TreeLeavesVoxel(position=(x-1,y+3,z+1))
-                        world_data.append({'position': [x-1, y+3, z+1], 'block_type': 'TreeLeavesVoxel'})
-                        voxel = TreeLeavesVoxel(position=(x,y+3,z-1))
-                        world_data.append({'position': [x, y+3, z-1], 'block_type': 'TreeLeavesVoxel'})
-                        voxel = TreeLeavesVoxel(position=(x+1,y+3,z-1))
-                        world_data.append({'position': [x+1, y+3, z-1], 'block_type': 'TreeLeavesVoxel'})
-                        voxel = TreeLeavesVoxel(position=(x-1,y+3,z-1))
-                        world_data.append({'position': [x-1, y+3, z-1], 'block_type': 'TreeLeavesVoxel'})
-                        voxel = TreeLeavesVoxel(position=(x+1,y+3,z))
-                        world_data.append({'position': [x+1, y+3, z], 'block_type': 'TreeLeavesVoxel'})
-                        voxel = TreeLeavesVoxel(position=(x-1,y+3,z))
-                        world_data.append({'position': [x-1, y+3, z], 'block_type': 'TreeLeavesVoxel'})
-                        voxel = TreeLeavesVoxel(position=(x,y+4,z+1))
-                        world_data.append({'position': [x, y+4, z+1], 'block_type': 'TreeLeavesVoxel'})
-                        voxel = TreeLeavesVoxel(position=(x+1,y+4,z+1))
-                        world_data.append({'position': [x+1, y+4, z+1], 'block_type': 'TreeLeavesVoxel'})
-                        voxel = TreeLeavesVoxel(position=(x-1,y+4,z+1))
-                        world_data.append({'position': [x-1, y+4, z+1], 'block_type': 'TreeLeavesVoxel'})
-                        voxel = TreeLeavesVoxel(position=(x,y+4,z-1))
-                        world_data.append({'position': [x, y+4, z-1], 'block_type': 'TreeLeavesVoxel'})
-                        voxel = TreeLeavesVoxel(position=(x+1,y+4,z-1))
-                        world_data.append({'position': [x+1, y+4, z-1], 'block_type': 'TreeLeavesVoxel'})
-                        voxel = TreeLeavesVoxel(position=(x-1,y+4,z-1))
-                        world_data.append({'position': [x-1, y+4, z-1], 'block_type': 'TreeLeavesVoxel'})
-                        voxel = TreeLeavesVoxel(position=(x+1,y+4,z))
-                        world_data.append({'position': [x+1, y+4, z], 'block_type': 'TreeLeavesVoxel'})
-                        voxel = TreeLeavesVoxel(position=(x-1,y+4,z))
-                        world_data.append({'position': [x-1, y+4, z], 'block_type': 'TreeLeavesVoxel'})
-                        voxel = TreeLeavesVoxel(position=(x,y+5,z))
-                        world_data.append({'position': [x, y+5, z], 'block_type': 'TreeLeavesVoxel'})
+                        generate_tree(x,y,z)
                 elif y == min_y:
                     voxel = worldgenerationvoxels['minvoxel'](position=position)
                     block_type = (type(voxel).__name__)
@@ -1426,6 +1456,7 @@ def save_world(filename=f'{script_dir}\\PyCraft\\Worlds\\world_save.json'):
         'world_version': game_version,
         'last_save_date': f'{current_datetime.date()}',
         'creative': creative,
+        'health': health,
         'hotbar': [slot.equipped.__name__ if slot.equipped and isinstance(slot.equipped, type) else slot.equipped if slot.equipped else None for slot in slots],
         'hotbaramounts': [slot.amount for slot in slots]
     }
@@ -1436,8 +1467,18 @@ def save_world(filename=f'{script_dir}\\PyCraft\\Worlds\\world_save.json'):
     with open(filename, 'w') as f:
         json.dump(save_data, f)
 
-def load_world(filename, skipoutdated=False):
-    global world_data, worlddimensions, worldver, seedvalue, saved_world_name, inventory_blocks_pg1, inventory_blocks_pg2, slots, last_y_position, creative
+def outdated_check(filename):
+    with open(filename, 'r') as f:
+        save_data = json.load(f)
+    worldver = save_data.get('world_version', 'Unknown')
+    if worldver != game_version:
+        outdated_popup(filename, worldver)
+        return
+    else:
+        load_world(filename)
+
+def load_world(filename, olderworld=False):
+    global world_data, worlddimensions, worldver, seedvalue, saved_world_name, inventory_blocks_pg1, inventory_blocks_pg2, slots, last_y_position, creative, health
     saved_world_name = filename[43:]
     with open(filename, 'r') as f:
         save_data = json.load(f)
@@ -1447,9 +1488,8 @@ def load_world(filename, skipoutdated=False):
     seedvalue = save_data.get('world_seed', 'Unknown')
     neededmods = save_data.get('world_mods', None)
     iscreative = save_data.get('creative', 'Unknown')
-    if worldver != game_version and not skipoutdated:
-        outdated_popup(filename)
-        return
+    loadedhealth = save_data.get('health', 100)
+    health = loadedhealth
     if iscreative and not iscreative == 'Unknown':
         creative = True
     elif iscreative == 'Unknown':
@@ -1464,11 +1504,15 @@ def load_world(filename, skipoutdated=False):
                 missingmods.append(mod)
     if missingmods != []:
         print(f"World '{filename}' requires mods: {missingmods}")
+        if olderworld:
+            open_play_menu()
         return
     try:
         worldproperties = save_data['world_size']
     except:
         print(f'ERROR: World {filename} is corrupt')
+        if olderworld:
+            open_play_menu()
         return
     load_mods(mod_states, mods_folder, game_api)
     destroy_play_menu()
@@ -1501,6 +1545,8 @@ def load_world(filename, skipoutdated=False):
     last_y_position = None
     player.position = Vec3(*player_position)
     mouse.locked = True
+    if not creative:
+        update_hearts()
     update_equipped_slot(slotselected)
 
 def get_world_timesaved(filename):
@@ -2036,7 +2082,7 @@ def open_play_menu():
             highlight_color=color.rgb(0.745, 0.729, 1),
             scale=(0.25,0.05),
             position=(-0.25, (-i * 0.06) + 0.1, -2),
-            on_click = lambda file_name=file_name: load_world(f'{script_dir}\\PyCraft\\Worlds\\{file_name}')
+            on_click = lambda file_name=file_name: outdated_check(f'{script_dir}\\PyCraft\\Worlds\\{file_name}')
         )
         world_date = Text(
             parent=scroll_container,
@@ -2195,8 +2241,8 @@ def delete_world(filepath):
     destroy(world_depth_button)
     
     open_play_menu()
-def outdated_popup(filename):
-    global file_buttons
+def outdated_popup(filename, worldversion):
+    global file_buttons, outdated_version_text, goback_button, continue_button, more_info_text
     for i in file_buttons:
         destroy(i)
     
@@ -2206,14 +2252,23 @@ def outdated_popup(filename):
     destroy(mode_select_button)
     destroy(world_dimensions_button)
     destroy(world_depth_button)
-    version_text = Text(
+    outdated_version_text = Text(
     parent=camera.ui,
     font="PyCraft/Textures/Fonts/mc.ttf",
-    text=f'This world was created on an older version of PyCraft',   
+    text=f'This world was created on an older version of PyCraft. Continue?',   
     origin=(0, 0),      
     scale=1.3,            
     color=color.white,   
     position=(0, 0.1),            
+    )
+    more_info_text = Text(
+    parent=camera.ui,
+    font="PyCraft/Textures/Fonts/mc.ttf",
+    text=f'(World Version: {worldversion}, Game Version: {game_version})',   
+    origin=(0, 0),      
+    scale=0.8,            
+    color=color.white,   
+    position=(0, 0.07),            
     )
     goback_button = Button(
         parent=camera.ui,
@@ -2224,7 +2279,7 @@ def outdated_popup(filename):
         texture="PyCraft/Textures/buttontexture.png",
         highlight_color=color.rgb(0.745, 0.729, 1),
         position=(-0.1375, 0),  
-        on_click = lambda: open_play_menu()
+        on_click = lambda: destroy_outdated()
     )
     continue_button = Button(
         parent=camera.ui,
@@ -2235,8 +2290,17 @@ def outdated_popup(filename):
         texture="PyCraft/Textures/buttontexture.png",
         highlight_color=color.rgb(0.745, 0.729, 1),
         position=(0.1375, 0),  
-        on_click = load_world(filename)
+        on_click = lambda: destroy_outdated(True, filename)
     )
+def destroy_outdated(continued=False, filename=None):
+    destroy(continue_button)
+    destroy(goback_button)
+    destroy(outdated_version_text)
+    destroy(more_info_text)
+    if continued:
+        load_world(filename, True)
+    else:
+        open_play_menu()
 def toggle_inventory():
     global inventory_opened
     if creative:
@@ -2318,6 +2382,7 @@ def close_survival_inventory():
     if holding_block:
         holding_block = False
         destroy(block_drag)
+        destroy(block_drag_amount)
     destroy(survival_inventory_panel)
 
 
@@ -2423,32 +2488,44 @@ def previous_inventory_page():
         currentpagedata['pagenumber'] = page_number.text
         currentpagedata['pagelabel'] = pagelabels[page_number.text]
 def hold_block(block):
-    global selectedvoxel,selected,hand,defrot,holding_block,block_drag,block_held
+    global selectedvoxel,selected,hand,defrot,holding_block,block_drag,block_held, block_drag_amount
     if holding_block:
         destroy(block_drag)
+        destroy(block_drag_amount)
     holding_block = True
     block_drag = Entity(
             parent=camera.ui,
             model='quad',
             texture=block['texture'],
             blockcolor = block['color'],
+            amount = 1,
             scale=(0.05,0.05),
             color=color.white,
+        )
+    block_drag_amount = Text(
+        parent=camera.ui,
+        font="PyCraft/Textures/Fonts/mc.ttf",
+        text=str(block_drag.amount),
+        origin=(0, 0),
+        scale=1,
+        color=color.white,
         )
     block_held = block['voxel_class']
 def equip_block(slot):
     global selectedvoxel,selected,hand,defrot,holding_block,block_drag,block_held,slot1,slot2,slot3,slot4,slot5,slot6,slot7,slot8,slot9, replacingslot
     if holding_block and not replacingslot:
         slot.texture=block_drag.texture
-        slot.equipped=block_held
-        slot.hand_color=block_drag.blockcolor
-        slot.visible = True
         if slot.equipped == block_held:
             if slot.amount < 64:
                 slot.amount += 1
         else:
             slot.amount = 1
+        slot.equipped=block_held
+        slot.hand_color=block_drag.blockcolor
+        slot.visible = True
+
         destroy(block_drag)
+        destroy(block_drag_amount)
         holding_block = False
         if slot == slotselected:
             update_equipped_slot(slot)
@@ -2464,13 +2541,14 @@ def equip_block(slot):
         slot.amount = block_drag.amount if hasattr(block_drag, 'amount') else 1
         slot.visible = True
         destroy(block_drag)
+        destroy(block_drag_amount)
         if slot == slotselected or replacingslot == slotselected:
             update_equipped_slot(slotselected)
         replacingslot = False
         holding_block = False
 
 def swap_block(slot):
-    global selectedvoxel,selected,hand,defrot,holding_block,block_drag,block_held,slot1,slot2,slot3,slot4,slot5,slot6,slot7,slot8,slot9, replacingslot
+    global selectedvoxel,selected,hand,defrot,holding_block,block_drag,block_held,slot1,slot2,slot3,slot4,slot5,slot6,slot7,slot8,slot9, replacingslot, block_drag_amount
     if slot.equipped:
         block_drag = Entity(
             parent=camera.ui,
@@ -2480,6 +2558,14 @@ def swap_block(slot):
             scale=(0.05,0.05),
             amount=slot.amount,
             color=color.white,
+        )
+        block_drag_amount = Text(
+        parent=camera.ui,
+        font="PyCraft/Textures/Fonts/mc.ttf",
+        text=str(block_drag.amount),
+        origin=(0, 0),
+        scale=1,
+        color=color.white,
         )
         slot.amount = 0
         replacingslot = slot
@@ -2497,6 +2583,7 @@ def close_inventory():
     if holding_block:
         holding_block = False
         destroy(block_drag)
+        destroy(block_drag_amount)
     destroy(inventory_panel)
     for btn in block_buttons:
         destroy(btn)
@@ -3261,6 +3348,18 @@ fall_start_y = None
 is_falling = False
 health = 100
 
+def update_hearts():
+    num_full_hearts = int(health / 10)
+    remainder = health % 10
+
+    for i in range(10):
+        if i < num_full_hearts:
+            hearts[::-1][i].texture = 'PyCraft/Textures/fullheart.png'
+        elif i == num_full_hearts and remainder >= 5:
+            hearts[::-1][i].texture = 'PyCraft/Textures/halfheart.png'
+        else:
+            hearts[::-1][i].texture = 'PyCraft/Textures/emptyheart.png'
+
 def animatehand():
     hand.rotation = defrot
 
@@ -3325,7 +3424,8 @@ def update():
     if title_screen_open:
         tiptext.scale = 1.5 + math.sin(time.time() * 2) * 0.1
     if holding_block:
-        block_drag.position = Vec3(mouse.x, mouse.y, -1.1)
+        block_drag.position = Vec3(mouse.x, mouse.y, -2.1)
+        block_drag_amount.position = Vec3(mouse.x + 0.01, mouse.y - 0.01, -2.2)
     if held_keys['shift']:
         player.speed = 10
         if not issprinting:
