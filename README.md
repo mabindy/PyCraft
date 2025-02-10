@@ -38,10 +38,13 @@ From here, you can move any installed versions of the game into this folder.
 When ready to launch PyCraft, select the version you would like to play and click the play button.
 
 ## Installing Updates
-There are 2 ways that you can install new versions of PyCraft.
+### There are 2 ways that you can install new versions of PyCraft:
 
-Installing updates for PyCraft has been made fairly simple through the launcher, however, you can also install new versions directly from the releases page of this repository.
-
-To check for and install the latest version of PyCraft through the launcher, simply click the "Check For Updates" button in the top right corner. This will automatically check this repository for a new release and will install it directly to your versions folder.
-
+### Method 1 (Launcher)
+To check for new versions and install the latest version of PyCraft through the launcher, simply click the "Check For Updates" button in the top right corner. This will automatically check this repository for a new release and will install it directly to your versions folder. Experimental versions and snapshots cannot be installed through the launcher and must be installed using method 2.
 ![image](https://github.com/user-attachments/assets/f829d143-ba35-4db7-bb79-3819ab52d88e)
+### Method 2 (Github)
+You can install all versions of PyCraft from the releases page of this Github repository. Snapshots can also be installed this way.
+
+![image](https://github.com/user-attachments/assets/35b3051f-0cc3-4076-9c24-faa15e7f2976)
+
