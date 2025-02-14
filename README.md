@@ -1,4 +1,4 @@
-# PyCraft
+# PyCraft                                                                                       [![image (1)](https://github.com/user-attachments/assets/e33b8c6c-f91b-4b44-a8cd-57c666d5c0a4)](https://discord.gg/HzUkS2kUTq)
 ![pycraft example](https://github.com/user-attachments/assets/e91db23b-e1dd-4d8e-8852-01662b17e570)
 # Getting Started
 ## DISCLAIMER - PyCraft is in an unfinished and buggy state. Report any bugs or issues on this repository.
@@ -47,4 +47,7 @@ To check for new versions and install the latest version of PyCraft through the 
 You can install all versions of PyCraft from the releases page of this Github repository. Snapshots can also be installed this way.
 
 ![image](https://github.com/user-attachments/assets/35b3051f-0cc3-4076-9c24-faa15e7f2976)
+
+
+[![image (1)](https://github.com/user-attachments/assets/e33b8c6c-f91b-4b44-a8cd-57c666d5c0a4)](https://discord.com)
 
